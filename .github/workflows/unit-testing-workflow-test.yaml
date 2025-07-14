@@ -1,10 +1,12 @@
 name: Test Composite Action - Run Unit Tests
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+    branches:
+      - develop
+      - release
+      - master
+      - main
 
 jobs:
   test-composite-action:
