@@ -39,7 +39,7 @@ pytest-cov = "^4.0"
           ' > pyproject.toml
 
       - name: Test composite action (self-ref)
-        uses: ./composite/run-unit-tests
+        uses: shubh-msharma/common-reusable-github-action/composite/run-unit-tests@main
         with:
           test-path: tests
           test-args: "-v"
