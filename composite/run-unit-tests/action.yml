@@ -23,19 +23,34 @@ runs:
 
     - name: Install uv
       run: |
+        echo '::group::Installing uv (Python dependency manager)'
         curl -Ls https://astral.sh/uv/install.sh | sh
+        echo '::endgroup::'
       shell: bash
 
     - name: Install dependencies from pyproject.toml
       run: |
+        echo '::group::Installing dependencies from pyproject.toml using uv'
         uv pip install --upgrade pip
         uv pip install pytest pytest-cov
         uv sync
+        echo '::endgroup::'
+      shell: bash
+
+    - name: Show installed dependencies
+      run: |
+        echo '::group::Installed packages (uv pip freeze)'
+        uv pip freeze
+        echo '::endgroup::'
       shell: bash
 
     - name: Run tests with coverage using uv
       run: |
+        echo '::group::Running tests with coverage using uv and pytest'
+        echo "Test path: ${{ inputs.test-path }}"
+        echo "Additional pytest args: ${{ inputs.test-args }}"
         python -m uv run pytest ${{ inputs.test-path }} --cov=. --cov-report=xml --cov-report=term --cov-fail-under=100 ${{ inputs.test-args }}
+        echo '::endgroup::'
       shell: bash
 
     - name: Upload coverage report
