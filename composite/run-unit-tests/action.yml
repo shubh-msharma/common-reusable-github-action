@@ -1,14 +1,14 @@
 name: 'Run Unit Tests with Coverage'
-description: 'Run FastAPI unit tests with uv, check 100% coverage on changed code, and upload coverage report as artifact.'
+description: 'Run FastAPI unit tests with uv or pip, check 100% coverage on changed code, and upload coverage report as artifact.'
 inputs:
   python-version:
     description: 'Python version to use'
     required: false
     default: '3.10'
   test-path:
-    description: 'Path to test(s) to run (e.g., tests/ or tests/clients/test_aws_client.py)'
+    description: 'Path to test(s) to run (file or directory). If not set, will auto-detect.'
     required: false
-    default: 'tests/'
+    default: ''
   test-args:
     description: 'Additional arguments to pass to pytest'
     required: false
@@ -21,35 +21,71 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
 
-    - name: Install uv
+    - name: Detect dependency manager and install dependencies
+      id: deps
       run: |
-        echo '::group::Installing uv (Python dependency manager)'
-        curl -Ls https://astral.sh/uv/install.sh | sh
-        echo '::endgroup::'
-      shell: bash
-
-    - name: Install dependencies from pyproject.toml
-      run: |
-        echo '::group::Installing dependencies from pyproject.toml using uv'
-        uv pip install --upgrade pip
-        uv pip install pytest pytest-cov
-        uv sync
+        echo '::group::Detecting dependency manager'
+        if [ -f "pyproject.toml" ]; then
+          echo "pyproject.toml found. Using uv."
+          curl -Ls https://astral.sh/uv/install.sh | sh
+          uv pip install --upgrade pip
+          uv pip install pytest pytest-cov
+          uv sync
+          echo "manager=uv" >> $GITHUB_OUTPUT
+        elif [ -f "requirements.txt" ]; then
+          echo "requirements.txt found. Using pip."
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+          pip install -r requirements.txt
+          echo "manager=pip" >> $GITHUB_OUTPUT
+        else
+          echo "No pyproject.toml or requirements.txt found. Exiting."
+          exit 1
+        fi
         echo '::endgroup::'
       shell: bash
 
     - name: Show installed dependencies
       run: |
-        echo '::group::Installed packages (uv pip freeze)'
-        uv pip freeze
+        echo '::group::Installed packages'
+        if [ "${{ steps.deps.outputs.manager }}" = "uv" ]; then
+          uv pip freeze
+        else
+          pip freeze
+        fi
         echo '::endgroup::'
       shell: bash
 
-    - name: Run tests with coverage using uv
+    - name: Auto-detect test path if not provided
+      id: testpath
       run: |
-        echo '::group::Running tests with coverage using uv and pytest'
-        echo "Test path: ${{ inputs.test-path }}"
+        if [ -n "${{ inputs.test-path }}" ]; then
+          echo "Using provided test path: ${{ inputs.test-path }}"
+          echo "path=${{ inputs.test-path }}" >> $GITHUB_OUTPUT
+        else
+          # Try common test directories
+          for d in tests test src/tests src/test; do
+            if [ -d "$d" ]; then
+              echo "Detected test directory: $d"
+              echo "path=$d" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          done
+          echo "No test directory found. Defaulting to current directory."
+          echo "path=." >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+
+    - name: Run tests with coverage
+      run: |
+        echo '::group::Running tests with coverage'
+        echo "Test path: ${{ steps.testpath.outputs.path }}"
         echo "Additional pytest args: ${{ inputs.test-args }}"
-        python -m uv run pytest ${{ inputs.test-path }} --cov=. --cov-report=xml --cov-report=term --cov-fail-under=100 ${{ inputs.test-args }}
+        if [ "${{ steps.deps.outputs.manager }}" = "uv" ]; then
+          python -m uv run pytest ${{ steps.testpath.outputs.path }} --cov=. --cov-report=xml --cov-report=term --cov-fail-under=100 ${{ inputs.test-args }}
+        else
+          pytest ${{ steps.testpath.outputs.path }} --cov=. --cov-report=xml --cov-report=term --cov-fail-under=100 ${{ inputs.test-args }}
+        fi
         echo '::endgroup::'
       shell: bash
 
