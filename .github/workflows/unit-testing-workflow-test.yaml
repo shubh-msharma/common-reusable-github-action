@@ -24,8 +24,10 @@ jobs:
           mkdir -p dummy_app/tests
           echo -e "import dummy_app.math_utils as mu\n\ndef test_add():\n    assert mu.add(1, 2) == 3\n" > dummy_app/tests/test_math.py
           echo -e 'pytest\npytest-cov' > requirements.txt
-
+          
       - name: Test composite action (self-ref)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         uses: shubh-msharma/common-reusable-github-action/composite/run-unit-tests@main
         with:
           test-path: dummy_app/tests
