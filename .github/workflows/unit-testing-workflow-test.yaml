@@ -21,16 +21,15 @@ jobs:
         run: |
           mkdir -p dummy_app
           echo 'def add(a, b): return a + b' > dummy_app/math_utils.py
+
           mkdir -p tests
-          echo '
-import dummy_app.math_utils as mu
+          echo 'import dummy_app.math_utils as mu
 
 def test_add():
     assert mu.add(1, 2) == 3
-          ' > tests/test_math.py
-          
-          echo '
-[tool.poetry]
+' > tests/test_math.py
+
+          echo '[tool.poetry]
 name = "dummy_app"
 version = "0.1.0"
 
@@ -38,7 +37,7 @@ version = "0.1.0"
 python = "^3.10"
 pytest = "^7.0"
 pytest-cov = "^4.0"
-          ' > pyproject.toml
+' > pyproject.toml
 
       - name: Test composite action (self-ref)
         uses: shubh-msharma/common-reusable-github-action/composite/run-unit-tests@main
