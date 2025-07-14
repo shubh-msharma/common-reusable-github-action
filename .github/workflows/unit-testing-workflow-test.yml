@@ -1,0 +1,45 @@
+name: Test Composite Action - Run Unit Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-composite-action:
+    runs-on: ubuntu-latest
+    name: Run test on self composite action
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Prepare dummy FastAPI test project
+        run: |
+          mkdir -p dummy_app
+          echo 'def add(a, b): return a + b' > dummy_app/math_utils.py
+          mkdir -p tests
+          echo '
+import dummy_app.math_utils as mu
+
+def test_add():
+    assert mu.add(1, 2) == 3
+          ' > tests/test_math.py
+          
+          echo '
+[tool.poetry]
+name = "dummy_app"
+version = "0.1.0"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pytest = "^7.0"
+pytest-cov = "^4.0"
+          ' > pyproject.toml
+
+      - name: Test composite action (self-ref)
+        uses: ./composite/run-unit-tests
+        with:
+          test-path: tests
+          test-args: "-v"
