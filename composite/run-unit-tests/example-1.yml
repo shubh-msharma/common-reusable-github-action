@@ -1,0 +1,23 @@
+name: PR Unit Tests (FastAPI + uv)
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - release
+      - master
+      - main
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Unit Tests with Coverage (FastAPI + uv)
+        uses: ./composite/run-unit-tests
+        with:
+          python-version: '3.10'
+          test-path: 'tests/'  # or specify a file, e.g., tests/clients/test_aws_client.py
+          test-args: '-v'      # add any extra pytest args here

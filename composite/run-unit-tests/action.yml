@@ -1,0 +1,45 @@
+name: 'Run Unit Tests with Coverage'
+description: 'Run FastAPI unit tests with uv, check 100% coverage on changed code, and upload coverage report as artifact.'
+inputs:
+  python-version:
+    description: 'Python version to use'
+    required: false
+    default: '3.10'
+  test-path:
+    description: 'Path to test(s) to run (e.g., tests/ or tests/clients/test_aws_client.py)'
+    required: false
+    default: 'tests/'
+  test-args:
+    description: 'Additional arguments to pass to pytest'
+    required: false
+    default: '-v'
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install uv
+      run: |
+        curl -Ls https://astral.sh/uv/install.sh | sh
+      shell: bash
+
+    - name: Install dependencies from pyproject.toml
+      run: |
+        uv pip install --upgrade pip
+        uv pip install pytest pytest-cov
+        uv sync
+      shell: bash
+
+    - name: Run tests with coverage using uv
+      run: |
+        python -m uv run pytest ${{ inputs.test-path }} --cov=. --cov-report=xml --cov-report=term --cov-fail-under=100 ${{ inputs.test-args }}
+      shell: bash
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-xml
+        path: coverage.xml
